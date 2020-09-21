@@ -1,0 +1,12 @@
+.fable
+.ionide
+node_modules
+paket-files
+packages
+**/[Bb]in/
+**/[Oo]bj
+.fake
+.fake/fcswatch/port.cache
+Build
+packages-microsoft-prod.deb
+.vs/
