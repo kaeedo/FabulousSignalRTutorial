@@ -17,7 +17,7 @@ module.exports = {
         port: 8080,
         proxy: {
             '/api': { // tell webpack-dev-server to re-route all requests from client to the server
-                target: "http://localhost:5000",// assuming the suave server is hosted op port 8083
+                target: "https://10.193.16.165:5001",// assuming the suave server is hosted op port 8083
                 changeOrigin: true
             }
         }

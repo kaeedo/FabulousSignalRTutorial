@@ -28,6 +28,7 @@ module Server =
     let main _ =
         WebHostBuilder()
             .UseKestrel()
+            .UseUrls("http://0.0.0.0:5000", "https://0.0.0.0:5001")
             .Configure(Action<IApplicationBuilder> configureApp)
             .ConfigureServices(configureServices)
             .Build()
