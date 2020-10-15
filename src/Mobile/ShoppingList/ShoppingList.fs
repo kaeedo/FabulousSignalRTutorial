@@ -6,29 +6,50 @@ open Fabulous.XamarinForms
 open Xamarin.Forms
 open Fable.Remoting.DotnetClient
 open Shared
+open Microsoft.AspNetCore.SignalR.Client
 
 module App = 
     type Model = 
-      { Items: string list }
+      { Items: string list
+        Hub: HubConnection }
 
     type Msg = 
         | GetItems
         | SetItems of ShoppingItem list
+        | SetItem of string * bool
         | Reset
+        | NoOp
 
     let shoppingApi =
         // must be HTTPS because android security stuff. 
         // localhost is the device itself
 
+        // https://montemagno.com/real-time-communication-for-mobile-with-signalr/
         //https://nicksnettravels.builttoroam.com/android-certificates/
         let routes = sprintf "http://10.193.16.165:5000/api/%s/%s"
         let proxy = Proxy.create<IShoppingApi> routes 
 
         proxy
 
-    let initModel = { Items = [] }
+    let initModel = 
+        let hub = 
+            HubConnectionBuilder()
+                .WithUrl("http://10.193.16.165:5000/shoppinglisthub")
+                .WithAutomaticReconnect()
+                .Build()
 
-    let init () = initModel, Cmd.none
+        hub.StartAsync() |> Async.AwaitTask |> ignore
+
+        { Items = []; Hub = hub }
+
+    let setupListeners (dispatch: Msg -> unit) (hub: HubConnection) =
+        hub.On<string, bool>("UpsertItem", fun item isDone ->
+            // let finalMessage = sprintf "%s says %b" item isDone
+            dispatch <| SetItem (item, isDone)
+        ) |> ignore
+
+    let init () = 
+        initModel, Cmd.ofSub (fun (dispatch: Msg -> unit) -> setupListeners dispatch initModel.Hub)
 
     let getShoppingCmd =
         async {
@@ -38,11 +59,20 @@ module App =
         }
         |> Cmd.ofAsyncMsg
 
+    let upsertShoppingCmd (hub: HubConnection) =
+        async {
+            do! hub.InvokeAsync("UpsertItem", "New Item", false) |> Async.AwaitTask
+            return NoOp
+        }
+        |> Cmd.ofAsyncMsg
+
     let update msg model =
         match msg with
-        | GetItems -> model, getShoppingCmd
+        | GetItems -> model, upsertShoppingCmd model.Hub // getShoppingCmd
         | SetItems items -> { model with Items = items |> List.map (fun i -> i.Name) }, Cmd.none
+        | SetItem (item, _) -> { model with Items = item :: model.Items }, Cmd.none
         | Reset -> init ()
+        | NoOp -> model, Cmd.none
 
     let items model = 
         model.Items 

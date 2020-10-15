@@ -8,6 +8,13 @@ open Fable.Remoting.Giraffe
 open Microsoft.AspNetCore.Builder
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.AspNetCore.Hosting
+open Microsoft.AspNetCore.SignalR
+
+type ShoppingListbHub() =
+    inherit Hub()
+    member __.UpsertItem(item: string, isDone: bool) =
+        printfn "Received: %s, Is done: %b" item isDone
+        __.Clients.All.SendAsync("UpsertItem", item + item, isDone)
 
 module Server =
     let webApp : HttpHandler =
@@ -17,12 +24,16 @@ module Server =
         |> Remoting.buildHttpHandler
 
     let configureApp (app : IApplicationBuilder) =
-        // Add Giraffe to the ASP.NET Core pipeline
+        app.UseRouting() |> ignore
+        app.UseEndpoints(fun endpoints ->
+            endpoints.MapHub<ShoppingListbHub>("/shoppinglisthub") |> ignore
+        ) |> ignore
         app.UseGiraffe webApp
 
     let configureServices (services : IServiceCollection) =
         // Add Giraffe dependencies
         services.AddGiraffe() |> ignore
+        services.AddSignalR() |> ignore
 
     [<EntryPoint>]
     let main _ =
