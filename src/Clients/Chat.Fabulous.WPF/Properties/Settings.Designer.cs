@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace BigTacToe.Wpf.Properties
+namespace Chat.Fabulous.Wpf.Properties
 {
 
 

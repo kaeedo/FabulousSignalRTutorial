@@ -43,30 +43,3 @@ module Server =
             .Build()
             .Run()
         0
-
-
-        // xml/network_security_config.xml
-//<?xml version="1.0" encoding="utf-8"?>
-//<network-security-config>
-//    <base-config cleartextTrafficPermitted="true" />
-//</network-security-config>
-
-
-// properties/androimanifest
-//<?xml version="1.0" encoding="utf-8"?>
-//<manifest xmlns:android="http://schemas.android.com/apk/res/android" 
-//          android:versionCode="1" 
-//          android:versionName="1.0" 
-//          package="dev.hashset.chat.fabulous.droid">
-//  <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="28" />
-//  <application 
-//      android:allowBackup="true" 
-//      android:icon="@mipmap/ic_launcher" 
-//      android:label="@string/app_name" 
-//      android:roundIcon="@mipmap/ic_launcher_round" 
-//      android:supportsRtl="true" 
-//      android:theme="@style/AppTheme"
-//      android:networkSecurityConfig="@xml/network_security_config">
-//  </application>
-//  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-//</manifest>

@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace BigTacToe.Wpf.Properties
+namespace Chat.Fabulous.Wpf.Properties
 {
 
 
@@ -44,7 +44,7 @@ namespace BigTacToe.Wpf.Properties
             {
                 if ((resourceMan == null))
                 {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("BigTacToe.Wpf.Properties.Resources", typeof(Resources).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Chat.Fabulous.Wpf.Properties.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
