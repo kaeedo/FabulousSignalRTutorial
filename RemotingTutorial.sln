@@ -19,7 +19,9 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Chat.Fabulous", "src\Client
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chat.Fabulous.Droid", "src\Clients\Chat.Fabulous.Droid\Chat.Fabulous.Droid.csproj", "{E73332F2-FA7A-4DE7-9C09-299CCF93983C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chat.Fabulous.WPF", "src\Clients\Chat.Fabulous.WPF\Chat.Fabulous.WPF.csproj", "{C038408C-39BE-4D90-B29C-28F7B63DD8D4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chat.Fabulous.Wpf", "src\Clients\Chat.Fabulous.WPF\Chat.Fabulous.Wpf.csproj", "{C038408C-39BE-4D90-B29C-28F7B63DD8D4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chat.Fabulous.GTK", "src\Clients\Chat.Fabulous.GTK\Chat.Fabulous.GTK.csproj", "{DA548844-D689-4E2B-9F9F-81103B68B75D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -85,6 +87,18 @@ Global
 		{C038408C-39BE-4D90-B29C-28F7B63DD8D4}.Release|x64.Build.0 = Release|Any CPU
 		{C038408C-39BE-4D90-B29C-28F7B63DD8D4}.Release|x86.ActiveCfg = Release|Any CPU
 		{C038408C-39BE-4D90-B29C-28F7B63DD8D4}.Release|x86.Build.0 = Release|Any CPU
+		{DA548844-D689-4E2B-9F9F-81103B68B75D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA548844-D689-4E2B-9F9F-81103B68B75D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA548844-D689-4E2B-9F9F-81103B68B75D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DA548844-D689-4E2B-9F9F-81103B68B75D}.Debug|x64.Build.0 = Debug|Any CPU
+		{DA548844-D689-4E2B-9F9F-81103B68B75D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DA548844-D689-4E2B-9F9F-81103B68B75D}.Debug|x86.Build.0 = Debug|Any CPU
+		{DA548844-D689-4E2B-9F9F-81103B68B75D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA548844-D689-4E2B-9F9F-81103B68B75D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA548844-D689-4E2B-9F9F-81103B68B75D}.Release|x64.ActiveCfg = Release|Any CPU
+		{DA548844-D689-4E2B-9F9F-81103B68B75D}.Release|x64.Build.0 = Release|Any CPU
+		{DA548844-D689-4E2B-9F9F-81103B68B75D}.Release|x86.ActiveCfg = Release|Any CPU
+		{DA548844-D689-4E2B-9F9F-81103B68B75D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -95,6 +109,7 @@ Global
 		{BDB2EE5A-8ABF-4C15-B86A-F3EECB310F28} = {4D41A656-BD7B-42CE-B737-E193DB598D16}
 		{E73332F2-FA7A-4DE7-9C09-299CCF93983C} = {4D41A656-BD7B-42CE-B737-E193DB598D16}
 		{C038408C-39BE-4D90-B29C-28F7B63DD8D4} = {4D41A656-BD7B-42CE-B737-E193DB598D16}
+		{DA548844-D689-4E2B-9F9F-81103B68B75D} = {4D41A656-BD7B-42CE-B737-E193DB598D16}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DDF6E993-5E78-494B-B2A5-DB9770B011A3}

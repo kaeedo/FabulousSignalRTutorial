@@ -23,7 +23,7 @@ module App =
     let initModel = 
         let hub = 
             HubConnectionBuilder()
-                .WithUrl("http://10.193.16.165:5000/chathub")
+                .WithUrl("http://192.168.1.103:5000/chathub")
                 .WithAutomaticReconnect()
                 .Build()
 
