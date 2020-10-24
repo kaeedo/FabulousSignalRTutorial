@@ -49,7 +49,7 @@ module Server =
         app.UseGiraffe webApp
 
     let configureServices (services : IServiceCollection) =
-        services.AddSingleton<Dictionary<string, string>>()
+        services.AddSingleton<Dictionary<string, string>>() |> ignore
 
         services.AddGiraffe() |> ignore
         services.AddSignalR() |> ignore

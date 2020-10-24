@@ -12,7 +12,9 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{EBEE3CE4-45E2-4BF7-A2F3-BC903F12DB77}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
+		Demo.gif = Demo.gif
 		LICENSE = LICENSE
+		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Chat.Fabulous", "src\Clients\Chat.Fabulous\Chat.Fabulous.fsproj", "{BDB2EE5A-8ABF-4C15-B86A-F3EECB310F28}"
