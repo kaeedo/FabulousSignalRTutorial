@@ -11,20 +11,33 @@ open FSharp.Control.Tasks.V2
 open Shared.SignalRHub
 
 module ChatHub =
-    let update (msg: Action) =
-        match msg with 
-        | Action.ClientConnected participant -> Response.ParticipantConnected [participant]
-        | Action.SendMessageToAll message -> Response.ReceiveMessage message
-        | Action.SendMessageToUser (sender, message) -> Response.ReceiveDirectMessage (sender, message)
-
     let invoke (msg: Action) (hubContext: FableHub) =
         task {
-            return update msg
+            return Response.ParticipantConnected [String.Empty]
         }
 
-    let send (msg: Action) (hubContext: FableHub<Action,Response>) =
-        update msg
-        |> hubContext.Clients.All.Send
+    let send (msg: Action) (hubContext: FableHub<Action, Response>) =
+        let participants = hubContext.Services.GetService<Dictionary<string, string>>()
+
+        match msg with
+        | Action.ClientConnected participant -> 
+            participants.[participant] <- hubContext.Context.ConnectionId
+            Response.ParticipantConnected (participants.Keys |> List.ofSeq)
+            |> hubContext.Clients.All.Send
+        | Action.SendMessageToAll message -> 
+            Response.ReceiveMessage message
+            |> hubContext.Clients.All.Send
+        | Action.SendMessageToUser (recipient, message) -> 
+            let sender = 
+                participants.Keys
+                |> List.ofSeq
+                |> List.find (fun k -> 
+                    participants.[k] = hubContext.Context.ConnectionId
+                )
+
+            let recipientConnectionId = participants.[recipient]
+            Response.ReceiveDirectMessage (sender, message)
+            |> hubContext.Clients.Client(recipientConnectionId).Send
 
     let config =
         { SignalR.Settings.EndpointPattern = Shared.Endpoints.Root

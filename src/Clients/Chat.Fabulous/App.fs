@@ -45,8 +45,9 @@ module App =
     let update msg model =
         match msg with
         | RegisterHub hub -> 
-            let cmd = Cmd.SignalR.send model.Hub (Action.ClientConnected model.Username)
-            { model with Hub = Some hub }, cmd
+            let hub = Some hub
+            let cmd = Cmd.SignalR.send hub (Action.ClientConnected model.Username)
+            { model with Hub = hub }, cmd
         | SignalRMessage response ->
             match response with
             | Response.ParticipantConnected participants ->
@@ -76,8 +77,8 @@ module App =
             let cmd =
                 Cmd.SignalR.connect RegisterHub (fun hub ->
                     hub.WithUrl(sprintf "http://192.168.1.103:5000%s" Shared.Endpoints.Root)
-                       .WithAutomaticReconnect()
-                       .OnMessage SignalRMessage)
+                        .WithAutomaticReconnect()
+                        .OnMessage SignalRMessage)
 
             model, cmd
         | NoOp -> model, Cmd.none

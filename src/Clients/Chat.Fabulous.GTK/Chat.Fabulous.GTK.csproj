@@ -56,14 +56,32 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\..\Program Files (x86)\GtkSharp\2.12\lib\gtk-sharp-2.0\atk-sharp.dll</HintPath>
     </Reference>
+    <Reference Include="Elmish, Version=3.1.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\Elmish.3.1.0\lib\net461\Elmish.dll</HintPath>
+    </Reference>
+    <Reference Include="Fable.Remoting.Json, Version=2.12.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\Fable.Remoting.Json.2.12.0\lib\net45\Fable.Remoting.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Fable.Remoting.MsgPack, Version=1.6.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\Fable.Remoting.MsgPack.1.6.0\lib\net45\Fable.Remoting.MsgPack.dll</HintPath>
+    </Reference>
+    <Reference Include="Fable.SignalR.DotNet, Version=0.10.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\Fable.SignalR.DotNet.0.10.1\lib\netstandard2.0\Fable.SignalR.DotNet.dll</HintPath>
+    </Reference>
+    <Reference Include="Fable.SignalR.DotNet.Elmish, Version=0.10.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\Fable.SignalR.DotNet.Elmish.0.10.1\lib\netstandard2.0\Fable.SignalR.DotNet.Elmish.dll</HintPath>
+    </Reference>
+    <Reference Include="Fable.SignalR.Shared, Version=0.10.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\Fable.SignalR.DotNet.0.10.1\lib\netstandard2.0\Fable.SignalR.Shared.dll</HintPath>
+    </Reference>
     <Reference Include="Fabulous, Version=0.52.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\..\..\packages\Fabulous.0.52.0\lib\netstandard2.0\Fabulous.dll</HintPath>
     </Reference>
     <Reference Include="Fabulous.XamarinForms, Version=0.52.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\..\..\packages\Fabulous.XamarinForms.0.52.0\lib\netstandard2.0\Fabulous.XamarinForms.dll</HintPath>
     </Reference>
-    <Reference Include="FSharp.Core, Version=5.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\..\packages\FSharp.Core.5.0.0\lib\netstandard2.0\FSharp.Core.dll</HintPath>
+    <Reference Include="FSharp.Core, Version=4.7.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\FSharp.Core.4.7.2\lib\net45\FSharp.Core.dll</HintPath>
     </Reference>
     <Reference Include="gdk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -109,6 +127,9 @@
     <Reference Include="Microsoft.AspNetCore.SignalR.Protocols.Json, Version=3.1.9.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
       <HintPath>..\..\..\packages\Microsoft.AspNetCore.SignalR.Protocols.Json.3.1.9\lib\netstandard2.0\Microsoft.AspNetCore.SignalR.Protocols.Json.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.AspNetCore.SignalR.Protocols.NewtonsoftJson, Version=3.1.9.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\Microsoft.AspNetCore.SignalR.Protocols.NewtonsoftJson.3.1.9\lib\netstandard2.0\Microsoft.AspNetCore.SignalR.Protocols.NewtonsoftJson.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=1.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\..\..\packages\Microsoft.Bcl.AsyncInterfaces.1.1.1\lib\net461\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
     </Reference>
@@ -138,6 +159,9 @@
     </Reference>
     <Reference Include="Microsoft.Extensions.Primitives, Version=3.1.9.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
       <HintPath>..\..\..\packages\Microsoft.Extensions.Primitives.3.1.9\lib\netstandard2.0\Microsoft.Extensions.Primitives.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\Newtonsoft.Json.12.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="OpenTK, Version=3.0.1.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
       <HintPath>..\..\..\packages\OpenTK.3.0.1\lib\net20\OpenTK.dll</HintPath>
@@ -185,6 +209,12 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
+    <Reference Include="TypeShape, Version=8.0.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\TypeShape.8.0.1\lib\net45\TypeShape.dll</HintPath>
+    </Reference>
+    <Reference Include="TypeShape.CSharp, Version=8.0.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\TypeShape.8.0.1\lib\net45\TypeShape.CSharp.dll</HintPath>
+    </Reference>
     <Reference Include="webkit-sharp, Version=1.1.15.0, Culture=neutral, PublicKeyToken=eaa1d335d2e19745, processorArchitecture=MSIL">
       <HintPath>..\..\..\packages\Xamarin.Forms.Platform.GTK.4.4.0.991640\lib\net45\webkit-sharp.dll</HintPath>
     </Reference>
