@@ -5,6 +5,8 @@ open Fabulous
 open Fabulous.XamarinForms
 open Xamarin.Forms
 open Microsoft.AspNetCore.SignalR.Client
+open Fable.SignalR.Elmish
+open Shared.SignalRHub
 
 module App = 
     type Model = 
@@ -13,87 +15,71 @@ module App =
         Username: string
         Participants: string list
         Recipient: string
+        Hub: Elmish.Hub<Action, Response> option
         ChatHub: HubConnection option }
 
     type Msg = 
         | MessageEntryText of string
         | SendMessage
-        | ReceivedMessage of string
         | UsernameEntryText of string
         | EnterChatRoom
         | RecipientChanged of string
-        | ParticipantConnected of string list
         | NoOp
+        | RegisterHub of Elmish.Hub<Action,Response>
+        | SignalRMessage of Response
 
     // https://montemagno.com/real-time-communication-for-mobile-with-signalr/
     // https://nicksnettravels.builttoroam.com/android-certificates/
     let initModel = 
-        { Messages = []; EntryText = String.Empty; ChatHub = None; Username = String.Empty; Participants = []; Recipient = String.Empty }
-
-    let setupListeners (dispatch: Msg -> unit) (hub: HubConnection) =
-        hub.On<string>("ReceiveMessage", fun message ->
-            dispatch <| ReceivedMessage message
-        ) |> ignore
-
-        hub.On<string, string>("ReceiveDirectMessage", fun sender message ->
-            dispatch <| ReceivedMessage (sprintf "%s whispered: %s" sender message)
-        ) |> ignore
-
-        hub.On<System.Collections.Generic.List<string>>("ParticipantConnected", fun participants ->
-            let participants = participants |> List.ofSeq
-            dispatch <| ParticipantConnected participants
-        ) |> ignore
+        { Messages = []
+          EntryText = String.Empty
+          Hub = None
+          ChatHub = None
+          Username = String.Empty
+          Participants = []
+          Recipient = String.Empty }
 
     let init () = 
         initModel, Cmd.none
 
-    let sendMessageCmd (model: Model) =
-        let task =
-            if String.IsNullOrWhiteSpace(model.Recipient) || model.Recipient = "All"
-            then model.ChatHub.Value.InvokeAsync("SendMessageToAll", model.EntryText)
-            else model.ChatHub.Value.InvokeAsync("SendMessageToUser", model.Recipient, model.EntryText)
-        async {
-            do! task |> Async.AwaitTask
-            return NoOp
-        }
-        |> Cmd.ofAsyncMsg
-    
-    let setConnectedCmd (hub: HubConnection) (username: string) =
-        async {
-            do! hub.InvokeAsync("ClientConnected", username) |> Async.AwaitTask
-            return NoOp
-        }
-        |> Cmd.ofAsyncMsg
-
     let update msg model =
         match msg with
-        | SendMessage -> { model with EntryText = String.Empty }, (sendMessageCmd model)
-        | ReceivedMessage m -> { model with Messages = m :: model.Messages }, Cmd.none
+        | RegisterHub hub -> 
+            let cmd = Cmd.SignalR.send model.Hub (Action.ClientConnected model.Username)
+            { model with Hub = Some hub }, cmd
+        | SignalRMessage response ->
+            match response with
+            | Response.ParticipantConnected participants ->
+                let userConnectedMessage = 
+                    sprintf "%s connected" (participants |> List.last)
+                { model with 
+                    Messages = userConnectedMessage :: model.Messages
+                    Participants = participants }, Cmd.none
+
+            | Response.ReceiveDirectMessage (sender, message) ->
+                let message = (sprintf "%s whispered: %s" sender message)
+                { model with Messages = message :: model.Messages }, Cmd.none
+            | Response.ReceiveMessage message ->
+                { model with Messages = message :: model.Messages }, Cmd.none
+
+        | SendMessage -> 
+            let cmd = 
+                if String.IsNullOrWhiteSpace(model.Recipient) || model.Recipient = "All"
+                then Cmd.SignalR.send model.Hub (Action.SendMessageToAll model.EntryText)
+                else Cmd.SignalR.send model.Hub (Action.SendMessageToUser (model.Recipient, model.EntryText))
+
+            { model with EntryText = String.Empty }, cmd
         | MessageEntryText t -> { model with EntryText = t }, Cmd.none
         | UsernameEntryText u -> { model with Username = u }, Cmd.none
         | RecipientChanged r -> { model with Recipient = r }, Cmd.none
-        | ParticipantConnected p -> 
-            let userConnectedMessage = 
-                sprintf "%s connected" (p |> List.last)
-            { model with 
-                Messages = userConnectedMessage :: model.Messages
-                Participants = p }, Cmd.none
         | EnterChatRoom -> 
-            let hub = 
-                HubConnectionBuilder()
-                    .WithUrl("http://192.168.1.103:5000/chathub")
-                    .WithAutomaticReconnect()
-                    .Build()
+            let cmd =
+                Cmd.SignalR.connect RegisterHub (fun hub ->
+                    hub.WithUrl(sprintf "http://192.168.1.103:5000%s" Shared.Endpoints.Root)
+                       .WithAutomaticReconnect()
+                       .OnMessage SignalRMessage)
 
-            hub.StartAsync() |> ignore
-
-            let cmds = 
-                Cmd.batch [
-                    Cmd.ofSub (fun (dispatch: Msg -> unit) -> setupListeners dispatch hub)
-                    setConnectedCmd hub model.Username
-                ]
-
-            { model with ChatHub = Some hub }, cmds
+            model, cmd
         | NoOp -> model, Cmd.none
 
     let chatMessages (model: Model) =
@@ -151,7 +137,7 @@ module App =
             ])
 
     let view (model: Model) dispatch =
-        View.ContentPage(content = (if model.ChatHub.IsSome then chatRoom else usernameEntry) model dispatch)
+        View.ContentPage(content = (if model.Hub.IsSome then chatRoom else usernameEntry) model dispatch)
 
     // Note, this declaration is needed if you enable LiveUpdate
     let program = Program.mkProgram init update view

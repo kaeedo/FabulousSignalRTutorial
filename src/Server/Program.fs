@@ -1,38 +1,37 @@
 ﻿namespace Server
 
 open System
-open System.Linq
 open Giraffe
 open Microsoft.AspNetCore.Builder
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.AspNetCore.Hosting
-open Microsoft.AspNetCore.SignalR
 open System.Collections.Generic
+open Fable.SignalR
+open FSharp.Control.Tasks.V2
+open Shared.SignalRHub
 
-type ChatHub(connectedUsers: Dictionary<string, string>) =
-    inherit Hub()
+module ChatHub =
+    let update (msg: Action) =
+        match msg with 
+        | Action.ClientConnected participant -> Response.ParticipantConnected [participant]
+        | Action.SendMessageToAll message -> Response.ReceiveMessage message
+        | Action.SendMessageToUser (sender, message) -> Response.ReceiveDirectMessage (sender, message)
 
-    member __.SendMessageToAll(message: string) =
-        printfn "Sending \"%s\" to all connected clients" message
-        __.Clients.All.SendAsync("ReceiveMessage", message) |> Async.AwaitTask |> Async.RunSynchronously
+    let invoke (msg: Action) (hubContext: FableHub) =
+        task {
+            return update msg
+        }
 
-    member __.SendMessageToUser(user: string, message: string) =
-        printfn "Sending \"%s\" to \"%s\"" message user
-        let caller = 
-            connectedUsers.Keys.Where(fun k -> connectedUsers.[k] = __.Context.ConnectionId).First()
+    let send (msg: Action) (hubContext: FableHub<Action,Response>) =
+        update msg
+        |> hubContext.Clients.All.Send
 
-        let clientId = connectedUsers.[user]
-        __.Clients.Client(clientId).SendAsync("ReceiveDirectMessage", caller, message) |> Async.AwaitTask |> Async.RunSynchronously
-
-    member __.ClientConnected(username: string) =
-        printfn "%s connected" username
-        connectedUsers.[username] <- __.Context.ConnectionId
-
-        let allParticipants = connectedUsers.Keys.ToList()
-
-        __.Clients.All.SendAsync("ParticipantConnected", allParticipants)  |> Async.AwaitTask |> Async.RunSynchronously
-
-
+    let config =
+        { SignalR.Settings.EndpointPattern = Shared.Endpoints.Root
+          SignalR.Settings.Send = send
+          SignalR.Settings.Invoke = invoke 
+          SignalR.Settings.Config = None }
+    
 module Server =
     let webApp : HttpHandler =
         choose [
@@ -40,19 +39,14 @@ module Server =
         ]
 
     let configureApp (app : IApplicationBuilder) =
-        // Needed together with endpoints
-        app.UseRouting() |> ignore
-        app.UseEndpoints(fun endpoints ->
-            endpoints.MapHub<ChatHub>("/chathub") |> ignore
-        ) |> ignore
-
+        app.UseSignalR(ChatHub.config) |> ignore
         app.UseGiraffe webApp
 
     let configureServices (services : IServiceCollection) =
         services.AddSingleton<Dictionary<string, string>>() |> ignore
 
         services.AddGiraffe() |> ignore
-        services.AddSignalR() |> ignore
+        services.AddSignalR(ChatHub.config) |> ignore
 
     [<EntryPoint>]
     let main _ =
