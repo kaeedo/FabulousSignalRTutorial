@@ -1,4 +1,4 @@
-## Demo chat application implemented with Fabulous for Xamarin forms, and Girafe
+## Demo chat application implemented with Fabulous for Xamarin forms, and Giraffe
 
 Accompanying blog post: https://hashset.dev/article/13_real_time_communication_with_giraffe_and_fabulous
 
