@@ -76,7 +76,7 @@ module App =
         | EnterChatRoom -> 
             let cmd =
                 Cmd.SignalR.connect RegisterHub (fun hub ->
-                    hub.WithUrl(sprintf "http://localhost:5000%s" Shared.Endpoints.Root)
+                    hub.WithUrl(sprintf "http://10.193.16.71:5000%s" Shared.Endpoints.Root)
                         .WithAutomaticReconnect()
                         .OnMessage SignalRMessage)
 

@@ -7,15 +7,19 @@
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Fable.SignalR" Version="0.10.0" />
-    <PackageReference Include="Fable.SignalR.AspNetCore" Version="0.10.1" />
+    <PackageReference Include="Fable.Remoting.Json" Version="2.16.0" />
+    <PackageReference Include="Fable.Remoting.MsgPack" Version="1.9.0" />
+    <PackageReference Include="Fable.SignalR" Version="0.11.4" />
+    <PackageReference Include="Fable.SignalR.AspNetCore" Version="0.11.4" />
     <PackageReference Include="Giraffe" Version="4.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Core" Version="1.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.NewtonsoftJson" Version="5.0.5" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Shared\Shared.fsproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="4.7.2" />
+    <PackageReference Update="FSharp.Core" Version="5.0.1" />
   </ItemGroup>
 </Project>
