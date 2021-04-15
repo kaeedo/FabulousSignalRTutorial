@@ -1,5 +1,6 @@
 .fable
 .ionide
+.idea
 node_modules
 paket-files
 packages
