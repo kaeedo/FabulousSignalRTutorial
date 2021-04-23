@@ -1,6 +1,7 @@
 ﻿namespace Chat.Fabulous
 
 open System
+open System.Threading.Tasks
 open Fabulous
 open Fabulous.XamarinForms
 open Xamarin.Essentials
@@ -12,8 +13,8 @@ open Shared.SignalRHub
 module App =
     // https://docs.microsoft.com/en-us/xamarin/essentials/web-authenticator?tabs=android
     // https://github.com/xamarin/Essentials/blob/develop/Samples/Sample.Server.WebAuthenticator/Controllers/MobileAuthController.cs
-    //let private serverUrl = "https://192.168.166.1:5001"
-    let private serverUrl = "https://10.193.16.71:5001"
+    //let private serverUrl = "https://192.168.1.131:5001"
+    let private serverUrl = "https://10.195.8.191:5001"
     type Model =
         { Messages: string list
           EntryText: string
@@ -34,7 +35,8 @@ module App =
         | RegisterHub of Elmish.Hub<Action, Response>
         | SignalRMessage of Response
         | LoginWithGitHub
-        | SetAccessToken of string
+        | SetAuthResult of WebAuthenticatorResult
+        | LoginFailed of exn
 
     // https://montemagno.com/real-time-communication-for-mobile-with-signalr/
     // https://nicksnettravels.builttoroam.com/android-certificates/
@@ -100,26 +102,41 @@ module App =
                 async {
                     try
                         let authUri = Uri($"{serverUrl}/auth")
-
+                            
                         let! authResult =
                             WebAuthenticator.AuthenticateAsync(authUri, Uri("fabulouschat://"))
                             |> Async.AwaitTask
 
-                        return SetAccessToken authResult.AccessToken
+                        return SetAuthResult authResult
                     with e ->
-                        printfn "%A" <| e.ToString()
-                        return SetAccessToken (e.ToString())
+                        return LoginFailed e
                 }
 
             model, Cmd.ofAsyncMsg getAccessTokenAsync
-        | SetAccessToken accessToken -> { model with AccessToken = accessToken }, Cmd.none
+        | SetAuthResult authResult -> { model with AccessToken = authResult.AccessToken; Username = authResult.Properties.["username"] }, Cmd.none
+        | LoginFailed e ->
+            let message =
+                let rec innermost (ex: exn) =
+                    if ex.InnerException <> null
+                    then innermost ex.InnerException
+                    else ex.Message
+                innermost e
+            
+            let display = async {
+                do! Application.Current.MainPage.DisplayAlert("Login Failed", message, "Close") |> Async.AwaitTask
+                return None
+            }
+
+            model, Cmd.ofAsyncMsgOption display
         | EnterChatRoom ->
             let cmd =
                 Cmd.SignalR.connect
                     RegisterHub
                     (fun hub ->
                         hub
-                            .WithUrl($"{serverUrl}{Shared.Endpoints.Root}")
+                            .WithUrl($"{serverUrl}{Shared.Endpoints.Root}", fun opt ->
+                                opt.AccessTokenProvider <- (fun () -> Task.FromResult(model.AccessToken))
+                                )
                             .WithAutomaticReconnect()
                             .OnMessage SignalRMessage)
 
@@ -151,8 +168,7 @@ module App =
                     textChanged = (fun args -> dispatch (UsernameEntryText args.NewTextValue))
                   )
                   View.Button(text = "Enter chat room", command = (fun () -> dispatch EnterChatRoom))
-                  View.Button(text = "Login with GitHub", command = (fun () -> dispatch LoginWithGitHub))
-                  View.Label(text = model.AccessToken) ]
+                  View.Button(text = "Login with GitHub", command = (fun () -> dispatch LoginWithGitHub)) ]
         )
 
     let chatRoom (model: Model) dispatch =

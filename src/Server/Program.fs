@@ -2,7 +2,6 @@
 
 open System
 open System.Net
-open System.Security.Claims
 open System.Threading.Tasks
 open Giraffe
 open Microsoft.AspNetCore.Authentication
@@ -15,6 +14,7 @@ open Microsoft.AspNetCore.Hosting
 open System.Collections.Generic
 open Fable.SignalR
 open FSharp.Control.Tasks.V2
+open Microsoft.Extensions.Logging
 open Shared.SignalRHub
 
 module ChatHub =
@@ -120,20 +120,23 @@ module Server =
 
                     return! redirectTo false url next ctx
             }
-
+            
     let webApp : HttpHandler =
         choose [ GET >=> route "/" >=> text "hello"
                  GET >=> route "/auth" >=> authenticate ] //requiresAuthentication (challenge "GitHub") >=> redirectTo false "/fabulouschat" //fun (next : HttpFunc) (ctx : HttpContext) -> printfn "authing"; requiresAuthentication (challenge "GitHub") next ctx
 
     let configureApp (app: IApplicationBuilder) =
-        //app.UseAuthentication() |> ignore
-        //app.UseAuthorization() |> ignore
+        app.UseAuthentication() |> ignore
         app.UseSignalR(ChatHub.config) |> ignore
         app.UseGiraffe webApp
 
     let configureAppConfiguration (context: WebHostBuilderContext) (config: IConfigurationBuilder) =
         config.AddUserSecrets(Reflection.Assembly.GetCallingAssembly())
         |> ignore
+
+    let configureLogging (builder : ILoggingBuilder) =
+        let filter (l : LogLevel) = l.Equals LogLevel.Error
+        builder.AddFilter(filter).AddConsole().AddDebug() |> ignore
 
     let configureServices (services: IServiceCollection) =
         let sp = services.BuildServiceProvider()
@@ -142,26 +145,25 @@ module Server =
 
         services
             .AddAuthentication(fun options ->
-                options.DefaultScheme <- CookieAuthenticationDefaults.AuthenticationScheme
+                options.DefaultAuthenticateScheme <- CookieAuthenticationDefaults.AuthenticationScheme
+                options.DefaultSignInScheme <- CookieAuthenticationDefaults.AuthenticationScheme
                 options.DefaultChallengeScheme <- "GitHub")
             .AddCookie()
             .AddGitHub(fun options ->
                 options.ClientId <- conf.["GithubClientId"]
                 options.ClientSecret <- conf.["GithubClientSecret"]
-                //options.CallbackPath <- PathString("/auth2")
+                options.CallbackPath <- PathString("/auth2")
+                // must be configured like this in GitHub
 
-                //options.ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier, "id")
-                //options.ClaimActions.MapJsonKey(ClaimTypes.Name, "name")
-
-                //options.AuthorizationEndpoint <- "https://github.com/login/oauth/authorize"
-                //options.TokenEndpoint <- "https://github.com/login/oauth/access_token"
-                //options.UserInformationEndpoint <- "https://api.github.com/user"
+                options.AuthorizationEndpoint <- "https://github.com/login/oauth/authorize"
+                options.TokenEndpoint <- "https://github.com/login/oauth/access_token"
+                options.UserInformationEndpoint <- "https://api.github.com/user"
                 options.SaveTokens <- true)
         |> ignore
 
         services.AddGiraffe() |> ignore
         services.AddSignalR(ChatHub.config) |> ignore
-
+        
     [<EntryPoint>]
     let main _ =
         WebHostBuilder()
@@ -170,6 +172,7 @@ module Server =
             .ConfigureAppConfiguration(configureAppConfiguration)
             .Configure(Action<IApplicationBuilder> configureApp)
             .ConfigureServices(configureServices)
+            .ConfigureLogging(configureLogging)
             .Build()
             .Run()
 
