@@ -2,8 +2,10 @@
 
 open System
 open System.Threading.Tasks
+open Fable.SignalR
 open Fabulous
 open Fabulous.XamarinForms
+open Microsoft.Extensions.Logging
 open Xamarin.Essentials
 open Xamarin.Forms
 open Microsoft.AspNetCore.SignalR.Client
@@ -14,7 +16,7 @@ module App =
     // https://docs.microsoft.com/en-us/xamarin/essentials/web-authenticator?tabs=android
     // https://github.com/xamarin/Essentials/blob/develop/Samples/Sample.Server.WebAuthenticator/Controllers/MobileAuthController.cs
     //let private serverUrl = "https://192.168.1.131:5001"
-    let private serverUrl = "https://10.195.8.191:5001"
+    let private serverUrl = "https://10.193.16.71:5001"
     type Model =
         { Messages: string list
           EntryText: string
@@ -22,8 +24,7 @@ module App =
           Participants: string list
           Recipient: string
           AccessToken: string
-          Hub: Elmish.Hub<Action, Response> option
-          ChatHub: HubConnection option }
+          Hub: Elmish.Hub<Action, Response> option }
 
     type Msg =
         | MessageEntryText of string
@@ -44,7 +45,6 @@ module App =
         { Messages = []
           EntryText = String.Empty
           Hub = None
-          ChatHub = None
           AccessToken = String.Empty
           Username = String.Empty
           Participants = []
@@ -84,6 +84,7 @@ module App =
                 Cmd.none
 
         | SendMessage ->
+            printfn "Hub connection state: %A" model.Hub.Value
             let cmd =
                 if String.IsNullOrWhiteSpace(model.Recipient)
                    || model.Recipient = "All" then
@@ -113,7 +114,8 @@ module App =
                 }
 
             model, Cmd.ofAsyncMsg getAccessTokenAsync
-        | SetAuthResult authResult -> { model with AccessToken = authResult.AccessToken; Username = authResult.Properties.["username"] }, Cmd.none
+        | SetAuthResult authResult ->
+            { model with AccessToken = authResult.AccessToken; Username = authResult.Properties.["username"] }, Cmd.ofMsg EnterChatRoom
         | LoginFailed e ->
             let message =
                 let rec innermost (ex: exn) =
@@ -138,6 +140,7 @@ module App =
                                 opt.AccessTokenProvider <- (fun () -> Task.FromResult(model.AccessToken))
                                 )
                             .WithAutomaticReconnect()
+                            .ConfigureLogging(fun logBuilder -> logBuilder.SetMinimumLevel(LogLevel.Debug))
                             .OnMessage SignalRMessage)
 
             model, cmd

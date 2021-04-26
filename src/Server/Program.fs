@@ -6,6 +6,7 @@ open System.Threading.Tasks
 open Giraffe
 open Microsoft.AspNetCore.Authentication
 open Microsoft.AspNetCore.Authentication.Cookies
+open Microsoft.AspNetCore.Authentication.JwtBearer // Add this nuget
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.Configuration
@@ -126,7 +127,7 @@ module Server =
                  GET >=> route "/auth" >=> authenticate ] //requiresAuthentication (challenge "GitHub") >=> redirectTo false "/fabulouschat" //fun (next : HttpFunc) (ctx : HttpContext) -> printfn "authing"; requiresAuthentication (challenge "GitHub") next ctx
 
     let configureApp (app: IApplicationBuilder) =
-        app.UseAuthentication() |> ignore
+        //app.UseAuthentication() |> ignore
         app.UseSignalR(ChatHub.config) |> ignore
         app.UseGiraffe webApp
 
@@ -145,10 +146,29 @@ module Server =
 
         services
             .AddAuthentication(fun options ->
-                options.DefaultAuthenticateScheme <- CookieAuthenticationDefaults.AuthenticationScheme
-                options.DefaultSignInScheme <- CookieAuthenticationDefaults.AuthenticationScheme
-                options.DefaultChallengeScheme <- "GitHub")
+                //options.DefaultAuthenticateScheme <- CookieAuthenticationDefaults.AuthenticationScheme
+                //options.DefaultSignInScheme <- CookieAuthenticationDefaults.AuthenticationScheme
+                options.DefaultChallengeScheme <- "GitHub"
+                
+                options.DefaultAuthenticateScheme <- JwtBearerDefaults.AuthenticationScheme
+                options.DefaultChallengeScheme <- JwtBearerDefaults.AuthenticationScheme
+                )
             .AddCookie()
+            .AddJwtBearer(fun options ->
+                //options.Authority <-
+                options.Events <- JwtBearerEvents(OnMessageReceived = fun ctx ->
+                    let accessToken = ctx.Request.Query.["access_token"].ToString()
+                    // If the request is for our hub...
+                    //let path = ctx.HttpContext.Request.Path.ToString()
+                    ctx.Token <- accessToken
+                    //if (not <| String.IsNullOrWhiteSpace(accessToken)) && (path.StartsWith(Shared.Endpoints.Root))
+                    //then
+                        // Read the token out of the query string
+                        
+                    
+                    Task.CompletedTask
+                    )
+                )
             .AddGitHub(fun options ->
                 options.ClientId <- conf.["GithubClientId"]
                 options.ClientSecret <- conf.["GithubClientSecret"]
@@ -159,7 +179,7 @@ module Server =
                 options.TokenEndpoint <- "https://github.com/login/oauth/access_token"
                 options.UserInformationEndpoint <- "https://api.github.com/user"
                 options.SaveTokens <- true)
-        |> ignore
+        |> ignore 
 
         services.AddGiraffe() |> ignore
         services.AddSignalR(ChatHub.config) |> ignore
