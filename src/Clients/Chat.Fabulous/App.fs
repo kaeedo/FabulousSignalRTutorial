@@ -1,6 +1,7 @@
 ﻿namespace Chat.Fabulous
 
 open System
+open System.Net.Http
 open System.Threading.Tasks
 open Fable.SignalR
 open Fabulous
@@ -84,7 +85,6 @@ module App =
                 Cmd.none
 
         | SendMessage ->
-            printfn "Hub connection state: %A" model.Hub.Value
             let cmd =
                 if String.IsNullOrWhiteSpace(model.Recipient)
                    || model.Recipient = "All" then
@@ -137,6 +137,14 @@ module App =
                     (fun hub ->
                         hub
                             .WithUrl($"{serverUrl}{Shared.Endpoints.Root}", fun opt ->
+#if DEBUG
+                                opt.HttpMessageHandlerFactory <- fun msg ->
+                                    match msg with
+                                    | :? HttpClientHandler as clientHandler ->
+                                        clientHandler.ServerCertificateCustomValidationCallback <- fun _ _ _ _ -> true
+                                        clientHandler :> HttpMessageHandler
+                                    | _ -> msg
+#endif
                                 opt.AccessTokenProvider <- (fun () -> Task.FromResult(model.AccessToken))
                                 )
                             .WithAutomaticReconnect()
