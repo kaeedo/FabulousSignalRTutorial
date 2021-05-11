@@ -1,6 +1,7 @@
 ﻿namespace Chat.Fabulous
 
 open System
+open System.IdentityModel.Tokens.Jwt
 open System.Net.Http
 open System.Threading.Tasks
 open Fable.SignalR
@@ -16,15 +17,15 @@ open Shared.SignalRHub
 module App =
     // https://docs.microsoft.com/en-us/xamarin/essentials/web-authenticator?tabs=android
     // https://github.com/xamarin/Essentials/blob/develop/Samples/Sample.Server.WebAuthenticator/Controllers/MobileAuthController.cs
-    //let private serverUrl = "https://192.168.1.131:5001"
-    let private serverUrl = "https://10.193.16.71:5001"
+    let private serverUrl = "https://192.168.1.131:5001"
+    //let private serverUrl = "https://10.193.16.71:5001"
     type Model =
         { Messages: string list
           EntryText: string
           Username: string
           Participants: string list
           Recipient: string
-          AccessToken: string
+          IdToken: string
           Hub: Elmish.Hub<Action, Response> option }
 
     type Msg =
@@ -36,8 +37,8 @@ module App =
         | NoOp
         | RegisterHub of Elmish.Hub<Action, Response>
         | SignalRMessage of Response
-        | LoginWithGitHub
-        | SetAuthResult of WebAuthenticatorResult
+        | Login
+        | SetAuthResult of string
         | LoginFailed of exn
 
     // https://montemagno.com/real-time-communication-for-mobile-with-signalr/
@@ -46,7 +47,7 @@ module App =
         { Messages = []
           EntryText = String.Empty
           Hub = None
-          AccessToken = String.Empty
+          IdToken = String.Empty
           Username = String.Empty
           Participants = []
           Recipient = String.Empty }
@@ -98,7 +99,7 @@ module App =
         | MessageEntryText t -> { model with EntryText = t }, Cmd.none
         | UsernameEntryText u -> { model with Username = u }, Cmd.none
         | RecipientChanged r -> { model with Recipient = r }, Cmd.none
-        | LoginWithGitHub ->
+        | Login ->
             let getAccessTokenAsync =
                 async {
                     try
@@ -107,15 +108,20 @@ module App =
                         let! authResult =
                             WebAuthenticator.AuthenticateAsync(authUri, Uri("fabulouschat://"))
                             |> Async.AwaitTask
+                            
+                        let idToken = authResult.Properties.["idToken"]
 
-                        return SetAuthResult authResult
+                        return SetAuthResult idToken
                     with e ->
                         return LoginFailed e
                 }
 
             model, Cmd.ofAsyncMsg getAccessTokenAsync
-        | SetAuthResult authResult ->
-            { model with AccessToken = authResult.AccessToken; Username = authResult.Properties.["username"] }, Cmd.ofMsg EnterChatRoom
+        | SetAuthResult jwtToken ->
+            let username =
+                let parsed = JwtSecurityTokenHandler().ReadJwtToken(jwtToken)
+                parsed.Payload.Item("nickname").ToString()
+            { model with IdToken = jwtToken; Username = username }, Cmd.ofMsg EnterChatRoom
         | LoginFailed e ->
             let message =
                 let rec innermost (ex: exn) =
@@ -145,7 +151,7 @@ module App =
                                         clientHandler :> HttpMessageHandler
                                     | _ -> msg
 #endif
-                                opt.AccessTokenProvider <- (fun () -> Task.FromResult(model.AccessToken))
+                                opt.AccessTokenProvider <- (fun () -> Task.FromResult(model.IdToken))
                                 )
                             .WithAutomaticReconnect()
                             .ConfigureLogging(fun logBuilder -> logBuilder.SetMinimumLevel(LogLevel.Debug))
@@ -179,7 +185,7 @@ module App =
                     textChanged = (fun args -> dispatch (UsernameEntryText args.NewTextValue))
                   )
                   View.Button(text = "Enter chat room", command = (fun () -> dispatch EnterChatRoom))
-                  View.Button(text = "Login with GitHub", command = (fun () -> dispatch LoginWithGitHub)) ]
+                  View.Button(text = "Login", command = (fun () -> dispatch Login)) ]
         )
 
     let chatRoom (model: Model) dispatch =
