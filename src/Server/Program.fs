@@ -7,7 +7,7 @@ open System.Threading.Tasks
 open Giraffe
 open Microsoft.AspNetCore.Authentication
 open Microsoft.AspNetCore.Authentication.Cookies
-open Microsoft.AspNetCore.Authentication.JwtBearer // Add this nuget
+open Microsoft.AspNetCore.Authentication.JwtBearer
 open Microsoft.AspNetCore.Authentication.OpenIdConnect
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Http
@@ -28,18 +28,24 @@ module ChatHub =
         task { return Response.ParticipantConnected String.Empty }
 
     let send (msg: Action) (hubContext: FableHub<Action, Response>) =
-        let participants =
+        let guests =
             hubContext.Services.GetService<HashSet<string>>()
-
-        printfn "User authenticated: %A" hubContext.Context.User.Identity.IsAuthenticated
+        let authenticatedUsers =
+            hubContext.Services.GetService<Dictionary<string, string>>()
 
         match msg with
         | Action.ClientConnected participant ->
             task {
-                do! hubContext.Groups.AddToGroupAsync(hubContext.Context.ConnectionId, participant)
+                if hubContext.Context.User.Identity.IsAuthenticated
+                then
+                    let userId = hubContext.Context.UserIdentifier
+                    do authenticatedUsers.Add(userId, hubContext.Context.User.Identity.Name)
+                else
+                    do! hubContext.Groups.AddToGroupAsync(hubContext.Context.ConnectionId, participant)
 
+                
                 let tasks =
-                    participants
+                    guests
                     |> Seq.map
                         (fun p ->
                             hubContext
@@ -47,13 +53,13 @@ module ChatHub =
                                 .Group(p)
                                 .Send(Response.ParticipantConnected participant))
 
-                do participants.Add(participant) |> ignore
+                do guests.Add(participant) |> ignore
 
                 return! Task.WhenAll(tasks)
             }
             :> Task
         | Action.SendMessageToAll message ->
-            participants
+            guests
             |> Seq.map
                 (fun p ->
                     hubContext
@@ -100,10 +106,14 @@ module Server =
                        |> Seq.exists (fun i -> i.IsAuthenticated)
                        |> not) then
                     // https://auth0.com/docs/quickstart/webapp/aspnet-core/01-login
-                    do! ctx.ChallengeAsync(CookieAuthenticationDefaults.AuthenticationScheme)
+                    do! ctx.ChallengeAsync("Auth0") // This scheme name maps to the scheme name registered in the AddOpenIDConnect middleware below
                     return! next ctx
                 else
                     let! idToken = ctx.GetTokenAsync(CookieAuthenticationDefaults.AuthenticationScheme, "id_token")
+                    let! asdidToken = ctx.GetTokenAsync(JwtBearerDefaults.AuthenticationScheme, "id_token")
+                    let! adddsdidToken = ctx.GetTokenAsync("Auth0", "id_token")
+                    
+                    printfn $"cookie: {WebUtility.UrlEncode(idToken)}{Environment.NewLine}Jwt: {asdidToken}{Environment.NewLine}Auth0: {adddsdidToken}"
 
                     let url =
                         $"fabulouschat://#idToken={WebUtility.UrlEncode(idToken)}"
@@ -115,11 +125,7 @@ module Server =
     let webApp : HttpHandler =
         choose [ GET >=> route "/" >=> text "hello"
                  GET >=> route "/callback" >=> text "callback"
-                 GET >=> requiresAuthenticationScheme CookieAuthenticationDefaults.AuthenticationScheme >=> route "/auth" >=> authenticate
-                 GET
-                 >=> route "/secured"
-                 >=> requiresAuthenticationScheme JwtBearerDefaults.AuthenticationScheme
-                 >=> secured ]
+                 GET >=> route "/auth" >=> authenticate ]
 
     let configureApp (app: IApplicationBuilder) =
         app.UseDeveloperExceptionPage() |> ignore
@@ -142,12 +148,14 @@ module Server =
         let sp = services.BuildServiceProvider()
         let conf = sp.GetService<IConfiguration>()
         services.AddSingleton<HashSet<string>>() |> ignore
+        services.AddSingleton<Dictionary<string, string>>() |> ignore
+            
+        services.AddAuthentication(fun opts ->
+            opts.DefaultScheme <- JwtBearerDefaults.AuthenticationScheme
 
-        services
-            .AddAuthentication(fun options ->
-                options.DefaultAuthenticateScheme <- JwtBearerDefaults.AuthenticationScheme
-                options.DefaultSignInScheme <- JwtBearerDefaults.AuthenticationScheme
-                options.DefaultChallengeScheme <- JwtBearerDefaults.AuthenticationScheme)
+            opts.DefaultSignInScheme <- CookieAuthenticationDefaults.AuthenticationScheme
+            )
+            .AddCookie()
             .AddOpenIdConnect("Auth0",
                               fun opts ->
                                   opts.Authority <- "https://fabulous-tutorial.eu.auth0.com"
@@ -165,7 +173,9 @@ module Server =
                                       OpenIdConnectEvents(
                                           OnRedirectToIdentityProvider =
                                               fun ctx ->
-                                                  ctx.ProtocolMessage.SetParameter("audience", "https://fabulouschat/")
+                                                  printfn "%A" ctx.Scheme
+                                                  
+                                                  ctx.ProtocolMessage.SetParameter("audience", "https://fabulous-chat/") //conf.["Auth0ClientId"]
                                                   // This audience is from API in Auth0
 
                                                   Task.CompletedTask
@@ -177,25 +187,12 @@ module Server =
 
                 opts.IncludeErrorDetails <- true
                 opts.Authority <- "https://fabulous-tutorial.eu.auth0.com/"
-                opts.Audience <- conf.["Auth0ClientId"] // "https://fabulouschat/" //
+                opts.Audience <- conf.["Auth0ClientId"] // "https://fabulous-chat/" 
                 // The audience is the Auth0 Application client ID since that is who issued the JWT token via the OIDC middleware above
-                
-                opts.Events <- JwtBearerEvents(
-                    OnMessageReceived = (fun ctx ->
-                        let idToken = ctx.Request.Query.["access_token"].ToString()
-                        if not (String.IsNullOrWhiteSpace(idToken))
-                        then ctx.Token <- idToken
-                        Task.CompletedTask
-                        )
-                    )
-
-            )
-            .AddCookie()
-
-        |> ignore
-        
+            )|> ignore
         services.AddGiraffe() |> ignore
         services.AddSignalR(ChatHub.config) |> ignore
+
 
     [<EntryPoint>]
     let main _ =

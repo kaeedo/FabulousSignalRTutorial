@@ -17,8 +17,8 @@ open Shared.SignalRHub
 module App =
     // https://docs.microsoft.com/en-us/xamarin/essentials/web-authenticator?tabs=android
     // https://github.com/xamarin/Essentials/blob/develop/Samples/Sample.Server.WebAuthenticator/Controllers/MobileAuthController.cs
-    let private serverUrl = "https://192.168.1.131:5001"
-    //let private serverUrl = "https://10.193.16.71:5001"
+    //let private serverUrl = "https://192.168.1.131:5001"
+    let private serverUrl = "https://10.193.16.71:5001"
     type Model =
         { Messages: string list
           EntryText: string

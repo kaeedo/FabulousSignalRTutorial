@@ -5,7 +5,6 @@
     <UserSecretsId>30af12f0-1e48-428a-b05a-64bf60ee8c3f</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Auth.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
