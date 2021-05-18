@@ -17,8 +17,8 @@ open Shared.SignalRHub
 module App =
     // https://docs.microsoft.com/en-us/xamarin/essentials/web-authenticator?tabs=android
     // https://github.com/xamarin/Essentials/blob/develop/Samples/Sample.Server.WebAuthenticator/Controllers/MobileAuthController.cs
-    //let private serverUrl = "https://192.168.1.131:5001"
-    let private serverUrl = "https://10.193.16.71:5001"
+    let private serverUrl = "https://192.168.1.131:5001"
+    //let private serverUrl = "https://10.193.16.71:5001"
     type Model =
         { Messages: string list
           EntryText: string
@@ -65,8 +65,8 @@ module App =
             { model with Hub = hub }, cmd
         | SignalRMessage response ->
             match response with
-            | Response.ParticipantConnected participant ->
-                let userConnectedMessage = sprintf "%s connected" participant
+            | Response.ParticipantConnected (isAuthenticated, participant) ->
+                let userConnectedMessage = sprintf "%s %s connected" (if not isAuthenticated then "(Guest)" else String.Empty) participant
 
                 { model with
                       Messages = userConnectedMessage :: model.Messages
@@ -84,6 +84,13 @@ module App =
                 { model with
                       Messages = message :: model.Messages },
                 Cmd.none
+            | Response.Unauthorized message ->
+                let display = async {
+                    do! Application.Current.MainPage.DisplayAlert("Failed", message, "Ok") |> Async.AwaitTask
+                    return None
+                }
+
+                model, Cmd.ofAsyncMsgOption display
 
         | SendMessage ->
             let cmd =
@@ -151,7 +158,8 @@ module App =
                                         clientHandler :> HttpMessageHandler
                                     | _ -> msg
 #endif
-                                opt.AccessTokenProvider <- (fun () -> Task.FromResult(model.IdToken))
+                                if not <| String.IsNullOrWhiteSpace(model.IdToken)
+                                then opt.AccessTokenProvider <- (fun () -> Task.FromResult(model.IdToken))
                                 )
                             .WithAutomaticReconnect()
                             .ConfigureLogging(fun logBuilder -> logBuilder.SetMinimumLevel(LogLevel.Debug))
@@ -179,13 +187,13 @@ module App =
         View.StackLayout(
             padding = Thickness 5.0,
             children =
-                [ View.Entry(
+                [ yield View.Entry(
                     placeholder = "Enter your username",
                     text = model.Username,
                     textChanged = (fun args -> dispatch (UsernameEntryText args.NewTextValue))
                   )
-                  View.Button(text = "Enter chat room", command = (fun () -> dispatch EnterChatRoom))
-                  View.Button(text = "Login", command = (fun () -> dispatch Login)) ]
+                  yield View.Button(text = "Enter chat room", command = (fun () -> dispatch EnterChatRoom))
+                  if Device.RuntimePlatform = Device.Android then yield View.Button(text = "Login", command = (fun () -> dispatch Login))  ]
         )
 
     let chatRoom (model: Model) dispatch =

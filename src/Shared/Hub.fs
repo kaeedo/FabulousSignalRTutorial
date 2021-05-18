@@ -11,7 +11,8 @@ module SignalRHub =
     type Response =
     | ReceiveMessage of string
     | ReceiveDirectMessage of string * string
-    | ParticipantConnected of string
+    | ParticipantConnected of bool * string
+    | Unauthorized of string
 
 [<RequireQualifiedAccess>]
 module Endpoints =

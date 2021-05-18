@@ -25,53 +25,50 @@ open Auth
 
 module ChatHub =
     let invoke (msg: Action) (hubContext: FableHub) =
-        task { return Response.ParticipantConnected String.Empty }
+        task { return Response.ParticipantConnected(false, String.Empty) }
 
     let send (msg: Action) (hubContext: FableHub<Action, Response>) =
         let guests =
             hubContext.Services.GetService<HashSet<string>>()
+
         let authenticatedUsers =
             hubContext.Services.GetService<Dictionary<string, string>>()
 
         match msg with
         | Action.ClientConnected participant ->
             task {
-                if hubContext.Context.User.Identity.IsAuthenticated
-                then
-                    let userId = hubContext.Context.UserIdentifier
-                    do authenticatedUsers.Add(userId, hubContext.Context.User.Identity.Name)
-                else
-                    do! hubContext.Groups.AddToGroupAsync(hubContext.Context.ConnectionId, participant)
+                let participant =
+                    if hubContext.Context.User.Identity.IsAuthenticated then
+                        (hubContext.Context.User.Claims |> Seq.find (fun c -> c.Type = "nickname")).Value
+                    else
+                        participant
 
-                
                 let tasks =
-                    guests
-                    |> Seq.map
-                        (fun p ->
-                            hubContext
-                                .Clients
-                                .Group(p)
-                                .Send(Response.ParticipantConnected participant))
-
-                do guests.Add(participant) |> ignore
+                    seq {
+                        yield! guests |> Seq.map (fun g -> hubContext.Clients.Caller.Send(Response.ParticipantConnected(false, g)))
+                        yield! authenticatedUsers |> Seq.map (fun kvp -> hubContext.Clients.Caller.Send(Response.ParticipantConnected(true, kvp.Value)))
+                        hubContext.Clients.Others.Send(Response.ParticipantConnected(hubContext.Context.User.Identity.IsAuthenticated, participant))
+                    }
+                    
+                if hubContext.Context.User.Identity.IsAuthenticated then
+                    let userId = hubContext.Context.UserIdentifier
+                    do authenticatedUsers.Add(userId, participant)
+                else
+                    do guests.Add(participant) |> ignore
+                    do! hubContext.Groups.AddToGroupAsync(hubContext.Context.ConnectionId, participant)
 
                 return! Task.WhenAll(tasks)
             }
             :> Task
-        | Action.SendMessageToAll message ->
-            guests
-            |> Seq.map
-                (fun p ->
-                    hubContext
-                        .Clients
-                        .Group(p)
-                        .Send(Response.ReceiveMessage message))
-            |> fun tasks -> Task.WhenAll(tasks)
+        | Action.SendMessageToAll message -> hubContext.Clients.All.Send(Response.ReceiveMessage message)
         | Action.SendMessageToUser (sender, recipient, message) ->
-            hubContext
-                .Clients
-                .Group(recipient)
-                .Send(Response.ReceiveDirectMessage(sender, message))
+            if hubContext.Context.User.Identity.IsAuthenticated then
+                hubContext
+                    .Clients
+                    .Group(recipient)
+                    .Send(Response.ReceiveDirectMessage(sender, message))
+            else
+                hubContext.Clients.Caller.Send(Response.Unauthorized "Only logged in users may send direct messages")
 
     let config =
         SignalR
@@ -79,7 +76,6 @@ module ChatHub =
             .LogLevel(LogLevel.Debug)
             .AfterUseRouting(fun app -> app.UseAuthorization())
             .EnableBearerAuth()
-            .EndpointConfig(fun builder -> builder.RequireAuthorization())
             .Build()
 
 module Server =
@@ -89,7 +85,7 @@ module Server =
                 let user =
                     ctx.User.Claims
                     |> Seq.map (fun (i: Claim) -> {| Type = i.Type; Value = i.Value |})
-                    
+
                 let! idToken = ctx.GetTokenAsync("id_token")
 
                 return! json {| User = user; IdToken = idToken |} next ctx
@@ -110,17 +106,13 @@ module Server =
                     return! next ctx
                 else
                     let! idToken = ctx.GetTokenAsync(CookieAuthenticationDefaults.AuthenticationScheme, "id_token")
-                    let! asdidToken = ctx.GetTokenAsync(JwtBearerDefaults.AuthenticationScheme, "id_token")
-                    let! adddsdidToken = ctx.GetTokenAsync("Auth0", "id_token")
-                    
-                    printfn $"cookie: {WebUtility.UrlEncode(idToken)}{Environment.NewLine}Jwt: {asdidToken}{Environment.NewLine}Auth0: {adddsdidToken}"
 
                     let url =
                         $"fabulouschat://#idToken={WebUtility.UrlEncode(idToken)}"
 
                     return! redirectTo false url next ctx
             }
-            
+
 
     let webApp : HttpHandler =
         choose [ GET >=> route "/" >=> text "hello"
@@ -148,13 +140,15 @@ module Server =
         let sp = services.BuildServiceProvider()
         let conf = sp.GetService<IConfiguration>()
         services.AddSingleton<HashSet<string>>() |> ignore
-        services.AddSingleton<Dictionary<string, string>>() |> ignore
-            
-        services.AddAuthentication(fun opts ->
-            opts.DefaultScheme <- JwtBearerDefaults.AuthenticationScheme
 
-            opts.DefaultSignInScheme <- CookieAuthenticationDefaults.AuthenticationScheme
-            )
+        services.AddSingleton<Dictionary<string, string>>()
+        |> ignore
+
+        services
+            .AddAuthentication(fun opts ->
+                opts.DefaultScheme <- JwtBearerDefaults.AuthenticationScheme
+
+                opts.DefaultSignInScheme <- CookieAuthenticationDefaults.AuthenticationScheme)
             .AddCookie()
             .AddOpenIdConnect("Auth0",
                               fun opts ->
@@ -173,9 +167,7 @@ module Server =
                                       OpenIdConnectEvents(
                                           OnRedirectToIdentityProvider =
                                               fun ctx ->
-                                                  printfn "%A" ctx.Scheme
-                                                  
-                                                  ctx.ProtocolMessage.SetParameter("audience", "https://fabulous-chat/") //conf.["Auth0ClientId"]
+                                                  ctx.ProtocolMessage.SetParameter("audience", "https://fabulous-chat/")
                                                   // This audience is from API in Auth0
 
                                                   Task.CompletedTask
@@ -187,9 +179,11 @@ module Server =
 
                 opts.IncludeErrorDetails <- true
                 opts.Authority <- "https://fabulous-tutorial.eu.auth0.com/"
-                opts.Audience <- conf.["Auth0ClientId"] // "https://fabulous-chat/" 
+                opts.Audience <- conf.["Auth0ClientId"] 
                 // The audience is the Auth0 Application client ID since that is who issued the JWT token via the OIDC middleware above
-            )|> ignore
+                )
+        |> ignore
+
         services.AddGiraffe() |> ignore
         services.AddSignalR(ChatHub.config) |> ignore
 
