@@ -15,10 +15,9 @@ open Fable.SignalR.Elmish
 open Shared.SignalRHub
 
 module App =
-    // https://docs.microsoft.com/en-us/xamarin/essentials/web-authenticator?tabs=android
-    // https://github.com/xamarin/Essentials/blob/develop/Samples/Sample.Server.WebAuthenticator/Controllers/MobileAuthController.cs
-    let private serverUrl = "https://192.168.1.131:5001"
-    //let private serverUrl = "https://10.193.16.71:5001"
+    // Use adb reverse tcp:5001 tcp:5001 to be able to call "localhost" from your device onto the dev server running on your dev machine
+    let private serverUrl = "https://127.0.0.1:5001"
+    
     type Model =
         { Messages: string list
           EntryText: string
@@ -41,8 +40,6 @@ module App =
         | SetAuthResult of string
         | LoginFailed of exn
 
-    // https://montemagno.com/real-time-communication-for-mobile-with-signalr/
-    // https://nicksnettravels.builttoroam.com/android-certificates/
     let initModel =
         { Messages = []
           EntryText = String.Empty
@@ -151,6 +148,7 @@ module App =
                         hub
                             .WithUrl($"{serverUrl}{Shared.Endpoints.Root}", fun opt ->
 #if DEBUG
+                                // Ignore SSL validation when developing against a self signed certificate
                                 opt.HttpMessageHandlerFactory <- fun msg ->
                                     match msg with
                                     | :? HttpClientHandler as clientHandler ->
@@ -235,7 +233,6 @@ module App =
                     dispatch
         )
 
-    // Note, this declaration is needed if you enable LiveUpdate
     let program = Program.mkProgram init update view
 
 type App() as app =

@@ -63,10 +63,14 @@ module ChatHub =
         | Action.SendMessageToAll message -> hubContext.Clients.All.Send(Response.ReceiveMessage message)
         | Action.SendMessageToUser (sender, recipient, message) ->
             if hubContext.Context.User.Identity.IsAuthenticated then
-                hubContext
-                    .Clients
-                    .Group(recipient)
-                    .Send(Response.ReceiveDirectMessage(sender, message))
+                if guests.Contains(recipient) then
+                    hubContext
+                        .Clients
+                        .Group(recipient)
+                        .Send(Response.ReceiveDirectMessage(sender, message))
+                else
+                    let userId = (authenticatedUsers |> Seq.find (fun kvp -> kvp.Value = recipient)).Key
+                    hubContext.Clients.User(userId).Send(Response.ReceiveDirectMessage(sender, message))
             else
                 hubContext.Clients.Caller.Send(Response.Unauthorized "Only logged in users may send direct messages")
 
