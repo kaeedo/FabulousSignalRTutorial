@@ -1,6 +1,6 @@
 ## Demo chat application implemented with Fabulous for Xamarin forms, and Giraffe
 
-Accompanying blog post: https://hashset.dev/article/13_real_time_communication_with_giraffe_and_fabulous
+Accompanying blog post: https://hashset.dev/article/14_improving_real_time_communication_using_fable_signal_r
 
 This is the demo application to show how to integrate SignalR Core in an F# Giraffe backend, and Fabulous Xamarin Forms Frontend with various cross platform clients
 
